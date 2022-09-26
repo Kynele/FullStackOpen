@@ -1,0 +1,7 @@
+browser->server: HTTP POST https://studies.cs.helsinki.fi/exampleapp/spa
+server-->browser: 201 created
+note over browser:
+browser doesn't reload page thanks
+to JS fetched from browser but
+rerenders note list on the page
+end note
