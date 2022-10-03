@@ -7,7 +7,14 @@ const App = (props) => {
 
   const addNote = (event) => {
     event.preventDefault();
-    console.log("button clicked", event.target);
+    const noteObject = {
+      id: notes.length + 1,
+      content: newNote,
+      date: new Date().toISOString(),
+      important: Math.random() < 0.5,
+    };
+    setNotes(notes.concat(noteObject));
+    setNewNote("");
   };
   const handleNoteChange = (event) => {
     console.log(event.target.value);
