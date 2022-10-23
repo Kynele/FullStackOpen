@@ -2,19 +2,19 @@ import { useEffect, useState } from "react";
 import Person from "./component/Person";
 import Filter from "./component/Filter";
 import PersonForm from "./component/PersonForm";
-import axios from "axios";
+import personService from "./services/person";
+import Notification from "./component/Notification";
 const App = () => {
   const [persons, setPersons] = useState([]);
   const [newName, setNewName] = useState("");
   const [newNumber, setNewNumber] = useState("");
   const [newtextFilter, setNewTextFilter] = useState("");
+  const [failureMessage, setFailureMessage] = useState(null);
+  const [sucessMessage, setSuccessMessage] = useState(null);
 
-  const hook = () => {
-    axios.get("http://localhost:3001/persons").then((response) => {
-      setPersons(response.data);
-    });
-  };
-  useEffect(hook, []);
+  useEffect(() => {
+    personService.getAll().then((initialPersons) => setPersons(initialPersons));
+  }, []);
 
   const nameIncluded = (arr, name) => {
     return arr.some((arrVal) => arrVal.name === name);
@@ -32,7 +32,31 @@ const App = () => {
   const addPerson = (event) => {
     event.preventDefault();
     if (nameIncluded(persons, newName)) {
-      alert(`${newName} is already added to phonebook`);
+      let duplicatePerson = persons.find((person) => person.name === newName);
+      const updatedPerson = {
+        name: newName,
+        number: newNumber,
+      };
+      personService
+        .update(duplicatePerson.id, updatedPerson)
+        .then((updatedPerson) => {
+          setPersons(
+            persons.map((person) =>
+              person.name !== updatedPerson.name ? person : updatedPerson
+            )
+          );
+          setSuccessMessage(
+            `${updatedPerson.name}'s number was successfully updtaed`
+          );
+          setTimeout(() => setSuccessMessage(null), 5000);
+        })
+        .catch((err) => {
+          setFailureMessage(
+            `${updatedPerson.name} was already removed from server`
+          );
+          console.log(err);
+          setTimeout(setFailureMessage(null), 5000);
+        });
     } else if (numberIncluded(persons, newNumber)) {
       alert(`${newNumber} is already added to phonebook`);
     } else {
@@ -40,7 +64,16 @@ const App = () => {
         name: newName,
         number: newNumber,
       };
-      setPersons(persons.concat(newPerson));
+      personService.create(newPerson).then((personCreated) => {
+        setPersons(persons.concat(personCreated));
+        setSuccessMessage(
+          `${newPerson.name}'s number was successfully added to the phonebook`
+        );
+        setTimeout(() => setSuccessMessage(null), 5000);
+      });
+
+      setNewName("");
+      setNewNumber("");
     }
   };
 
@@ -52,11 +85,29 @@ const App = () => {
       return person.name.toLowerCase().startsWith(newtextFilter.toLowerCase());
     });
   };
+  const remove = (id, name) => {
+    if (window.confirm(`Delete ${name} ?`)) {
+      personService
+        .remove(id)
+        .then(() =>
+          setPersons(persons.filter((person) => person.name !== name))
+        )
+        .catch((err) => {
+          setFailureMessage(`${name} was already removed from server`);
+          console.log(err);
+          setTimeout(setFailureMessage(null), 5000);
+        });
+    }
+  };
 
   return (
     <div>
       <Filter inputValue={newtextFilter} inputOnChange={setTextFilter}></Filter>
       <h2>Phonebook</h2>
+      <Notification
+        successMessage={sucessMessage}
+        failureMessage={failureMessage}
+      ></Notification>
       <PersonForm
         addPerson={addPerson}
         newName={newName}
@@ -73,6 +124,8 @@ const App = () => {
             key={person.name}
             name={person.name}
             number={person.number}
+            id={person.id}
+            buttonAction={() => remove(person.id, person.name)}
           ></Person>
         ))}
       </ul>
