@@ -44,7 +44,10 @@ const App = () => {
             persons.map((person) =>
               person.name !== updatedPerson.name ? person : updatedPerson
             )
-          );
+          ).catch((error) => {
+            // this is the way to access the error message
+            setFailureMessage(error.response.data.error);
+          });
           setSuccessMessage(
             `${updatedPerson.name}'s number was successfully updtaed`
           );
@@ -64,13 +67,19 @@ const App = () => {
         name: newName,
         number: newNumber,
       };
-      personService.create(newPerson).then((personCreated) => {
-        setPersons(persons.concat(personCreated));
-        setSuccessMessage(
-          `${newPerson.name}'s number was successfully added to the phonebook`
-        );
-        setTimeout(() => setSuccessMessage(null), 5000);
-      });
+      personService
+        .create(newPerson)
+        .then((personCreated) => {
+          setPersons(persons.concat(personCreated));
+          setSuccessMessage(
+            `${newPerson.name}'s number was successfully added to the phonebook`
+          );
+          setTimeout(() => setSuccessMessage(null), 5000);
+        })
+        .catch((error) => {
+          // this is the way to access the error message
+          setFailureMessage(error.response.data.error);
+        });
 
       setNewName("");
       setNewNumber("");

@@ -1,11 +1,12 @@
 const express = require("express");
+const app = express();
 const morgan = require("morgan");
 const cors = require("cors");
+const Person = require("./models/person");
+const { default: mongoose } = require("mongoose");
 
-const app = express();
-app.use(express.json());
-app.use(express.static("build"));
 app.use(cors());
+app.use(express.static("build"));
 let persons = [
   {
     id: 1,
@@ -28,6 +29,7 @@ let persons = [
     number: "39-23-6423122",
   },
 ];
+app.use(express.json());
 
 morgan.token("body", (request, response) =>
   request.method === "POST" ? JSON.stringify(request.body) : ""
@@ -46,11 +48,12 @@ app.use(
     ].join(" ");
   })
 );
+
 app.get("/", (request, response) => {
   response.send("<h1>Hello World!</h1>");
 });
 app.get("/api/persons", (request, response) => {
-  response.json(persons);
+  Person.find({}).then((peopleFound) => response.json(peopleFound));
 });
 
 app.get("/info", (request, response) => {
@@ -60,26 +63,14 @@ app.get("/info", (request, response) => {
 });
 
 app.get("/api/persons/:id", (request, response) => {
-  const id = Number(request.params.id);
-  const person = persons.find((person) => person.id === id);
-  if (!person) {
-    response
-      .status(404)
-      .json({ error: `Couldn't find person whose id is ${id}` });
-  }
-  response.json(person);
+  const id = request.params.id;
+  Person.findById(id).then((peopleFound) => response.json(peopleFound));
 });
 
 app.delete("/api/persons/:id", (request, response) => {
-  const id = Number(request.params.id);
-  const person = persons.find((person) => person.id === id);
-  if (!person) {
-    response
-      .status(404)
-      .json({ error: `Couldn't find person whose id is ${id}` });
-  }
-  persons = persons.filter((person) => person.id !== id);
-  response.status(204).end();
+  Person.findByIdAndDelete(request.params.id)
+    .then((result) => response.status(204).end())
+    .catch((err) => next(err));
 });
 
 const generateId = () => {
@@ -87,34 +78,95 @@ const generateId = () => {
   return Math.floor(Math.random() * (1000 - maxId) + maxId);
 };
 
-app.post("/api/persons", (request, response) => {
-  if (!request.body.name) {
-    return response.status(404).json({ error: "Name missing" });
-  } else if (!request.body.number) {
-    return response.status(404).json({ error: "Number missing" });
+const duplicateNumber = async (personNumber) => {
+  try {
+    const p = await Person.findOne({ number: personNumber });
+    if (p) {
+      return true;
+    }
+    return false;
+  } catch (e) {
+    console.log(e);
+    return true;
   }
-  const existingName = persons.find(
-    (person) => person.name === request.body.name
-  );
-  if (existingName) {
-    return response.status(404).json({ error: `Name must be unique` });
+};
+
+app.post("/api/persons", async (request, response, next) => {
+  const body = request.body;
+  if (!body) {
+    return response.status(404).json({ error: "Empty body" });
   }
-  const person = {
-    id: generateId(),
-    name: request.body.name,
-    number: request.body.number,
+  if (!body.name) {
+    return response.status(404).json({ error: "No name provided" });
+  }
+  if (!body.number) {
+    return response.status(404).json({ error: "No number provided" });
+  }
+  const isDuplicateNumber = await duplicateNumber(body.number);
+  if (isDuplicateNumber) {
+    return response.status(404).json({ error: "Duplicate number" });
+  } else {
+    const person = new Person({
+      name: body.name,
+      number: body.number,
+    });
+    try {
+      await person.save();
+      response.status(201).json(person);
+    } catch (e) {
+      next(e);
+    }
+  }
+});
+
+app.put("/api/persons/:id", (request, response) => {
+  console.log(request.body);
+  const body = request.body;
+  if (!body) {
+    return response.status(404).json({ error: "Empty body" });
+  }
+  if (!body.name) {
+    return response.status(404).json({ error: "No name provided" });
+  }
+  if (!body.number) {
+    return response.status(404).json({ error: "No number provided" });
+  }
+  const newPerson = {
+    name: body.name,
+    number: body.number,
   };
-  persons = persons.concat(person);
-  response.json(person);
+  Person.findByIdAndUpdate(request.params.id, newPerson, {
+    new: true,
+    runValidators: true,
+    context: "query",
+  })
+    .then((updatedPerson) => {
+      response.json(updatedPerson);
+    })
+    .catch((e) => next(e));
 });
 
 const PORT = process.env.PORT || 3001;
 
-const unknownEndpoint = (request, reponse) => {
-  response.status(404).send({ error: "unknown endpoint" });
+// const unknownEndpoint = (request, reponse) => {
+//   response.status(404).send({ error: "unknown endpoint" });
+// };
+
+// app.use(unknownEndpoint);
+
+const errorHandler = (error, request, response, next) => {
+  console.error(error.message);
+
+  if (error.name === "CastError") {
+    return response.status(400).send({ error: "malformatted id" });
+  } else if (error.name === "ValidationError") {
+    return response.status(400).json({ error: error.message });
+  }
+
+  next(error);
 };
 
-app.use(unknownEndpoint);
+app.use(errorHandler);
 
 app.listen(PORT, () => {
   console.log(`Server listening on port ${PORT}`);

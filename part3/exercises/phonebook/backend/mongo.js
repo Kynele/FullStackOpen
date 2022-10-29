@@ -1,69 +1,76 @@
-const mongoose = require("mongoose");
+// const mongoose = require("mongoose");
 
-let name;
-let number;
+// All this stuff is for the exercise 3.12, decided to comment it because we now access the database using the MONGO_URI and get and post requests are now handled in index.js
 
-const length = process.argv.length;
+// Checkout ./models/person.js and index.js for all the other exercises
 
-if (length < 3) {
-  console.log(
-    "Please provide the password as an argument: node mongo.js <password>"
-  );
-  process.exit(1);
-} else if (length === 4) {
-  name = process.argv[3];
-} else if (length === 5) {
-  name = process.argv[3];
-  number = process.argv[4];
-}
+// let newName;
+// let newNumber;
 
-const password = process.argv[2];
+// const length = process.argv.length;
 
-const url = `mongodb+srv://Kynele:${password}@phonebook.0zi1ky1.mongodb.net/?retryWrites=true&w=majority`;
+// if (length < 3) {
+//   console.log(
+//     "Please provide the password as an argument: node mongo.js <password>"
+//   );
+//   process.exit(1);
+// } else if (length === 4) {
+//   newName = process.argv[3];
+// } else if (length === 5) {
+//   newName = process.argv[3];
+//   newNumber = process.argv[4];
+// }
 
-const personSchema = new mongoose.Schema({
-  name: String,
-  number: String,
-});
+// const password = process.argv[2];
 
-const Person = mongoose.model("Person", personSchema);
+// const url = `mongodb+srv://Kynele:${password}@phonebook.0zi1ky1.mongodb.net/?retryWrites=true&w=majority`;
 
-const promise = new Promise((resolve, reject) => resolve());
+// const personSchema = new mongoose.Schema({
+//   name: String,
+//   number: String,
+// });
 
-// mongoose
-//   .connect(url)
-//   .then((result) => {
-//     console.log("Connected");
-//     return new Promise((resolve, reject) => {
+// const Person = mongoose.model("Person", personSchema);
+
+// const connect = async () => {
+//   await mongoose
+//     .connect(url)
+//     .then(console.log("connected"))
+//     .catch((e) => console.log(e));
+// };
+
+// const findPeople = async () => {
+//   await Person.find({}).then((result) =>
+//     result.forEach((person) => console.log(`${person.name} ${person.number}`))
+//   );
+// };
+
+// const createPerson = (personName, personNumber) => {
+//   return new Person({
+//     name: personName,
+//     number: personNumber,
+//   });
+// };
+
+// const doOperations = () => {
+//   connect()
+//     .then(() => {
 //       if (length === 3) {
-//         Person.find({}).then((result) =>
-//           result.forEach((person) => console.log(person))
-//         );
-//         resolve();
+//         console.log("phonebook:");
+//         return findPeople();
 //       } else {
-//         const person = new Person({
-//           name: name,
-//           number: number,
-//         });
-//         resolve();
+//         const person = createPerson(newName, newNumber);
 //         return person.save();
 //       }
+//     })
+//     .then(() => {
+//       if (length > 3) {
+//         console.log(
+//           `${newName} ${newNumber} was successfully added to the phonebook`
+//         );
+//       }
+//       mongoose.connection.close();
 //     });
-//   })
-//   .then(mongoose.connection.close());
+// };
 
-// mongoose
-//   .connect(url)
-//   .then((result) => console.log("Connected"))
-//   .then(
-//     length == 3
-//       ? Person.find({})
-//           .then((result) => result.forEach((person) => console.log(person)))
-//           .then(mongoose.connection.close())
-//       : () => {
-//           console.log(`added ${name} ${number} to phonebook`);
-//           return person.save();
-//         }
-//         .then(mongoose.connection.close())
-//   )
-//   .catch((err) => console.log(err));
+// doOperations();
